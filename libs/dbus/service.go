@@ -8,8 +8,7 @@ import (
 	"sync"
 
 	"github.com/godbus/dbus/v5"
-
-	"github.com/iseall/firewall-api/object"
+	"github.com/cylonchau/gofirewallder/object"
 )
 
 var (
@@ -20,7 +19,7 @@ var (
 )
 
 type DbusClientSerivce struct {
-	client      *dbus.Conn
+	Conn      *dbus.Conn
 	defaultZone string
 }
 
@@ -32,7 +31,7 @@ func NewDbusClientService(addr string) (*DbusClientSerivce, error) {
 
 	remotelyBusLck.Lock()
 	defer remotelyBusLck.Unlock()
-	if dbusClient != nil && dbusClient.client.Connected() {
+	if dbusClient != nil && dbusClient.Conn.Connected() {
 		return dbusClient, nil
 	}
 	conn, err := dbus.Connect("tcp:host="+host+",port="+port, dbus.WithAuth(dbus.AuthAnonymous()))
@@ -76,7 +75,7 @@ func (c *DbusClientSerivce) GetDefaultZone() string {
 // @return        zones            []string       "Return array of names (s) of predefined zones known to current runtime environment."
 // @return        error            error          ""
 func (c *DbusClientSerivce) GetZones() (zones []string, err error) {
-	obj := c.client.Object(object.INTERFACE, object.SERVICE)
+	obj := c.Conn.Object(object.INTERFACE, object.SERVICE)
 	call := obj.Call(object.ZONE_GETZONES, dbus.FlagNoAutoStart)
 
 	if call.Err != nil {
@@ -117,7 +116,7 @@ func (c *DbusClientSerivce) GetZoneSettings(zone string) (err error) {
 		return err
 	}
 
-	obj := c.client.Object(object.INTERFACE, object.PATH)
+	obj := c.Conn.Object(object.INTERFACE, object.PATH)
 
 	call := obj.Call(object.INTERFACE_GETZONESETTINGS, dbus.FlagNoAutoStart, zone)
 	if call.Err != nil {
@@ -138,7 +137,7 @@ func (c *DbusClientSerivce) AddZone(name string) (err error) {
 		return err
 	}
 
-	obj := c.client.Object(object.INTERFACE, object.CONFIG_PATH)
+	obj := c.Conn.Object(object.INTERFACE, object.CONFIG_PATH)
 	zoneSettings := Settings{}
 
 	zoneSettings.Targe = "default"
@@ -158,7 +157,7 @@ func (c *DbusClientSerivce) AddZone(name string) (err error) {
 // @param         iface    		   string         "e.g. eth0, iface is device name."
 // @return        zoneName         string         "Return name (s) of zone the interface is bound to or empty string.."
 func (c *DbusClientSerivce) GetZoneOfInterface(iface string) string {
-	obj := c.client.Object(object.INTERFACE, object.SERVICE)
+	obj := c.Conn.Object(object.INTERFACE, object.SERVICE)
 	call := obj.Call(object.ZONE_GETZONEOFINTERFACE, dbus.FlagNoAutoStart, iface)
 	return call.Body[0].(string)
 }
@@ -186,7 +185,7 @@ func (c *DbusClientSerivce) AddPort(port, zone string, timeout int) (list string
 
 	port, protocol := splitPortProtocol(port)
 
-	obj := c.client.Object(object.INTERFACE, object.SERVICE)
+	obj := c.Conn.Object(object.INTERFACE, object.SERVICE)
 	call := obj.Call(object.ZONE_ADDPORT, dbus.FlagNoAutoStart, zone, port, protocol, timeout)
 
 	if call.Err != nil {
@@ -216,7 +215,7 @@ func (c *DbusClientSerivce) PermanentAddPort(port, zone string) (err error) {
 	if path, err := c.generatePath(zone, object.ZONE_PATH); err != nil {
 		return err
 	} else {
-		obj := c.client.Object(object.INTERFACE, path)
+		obj := c.Conn.Object(object.INTERFACE, path)
 		call := obj.Call(object.CONFIG_ZONE_ADDPORT, dbus.FlagNoAutoStart, port, protocol)
 		if call.Err != nil {
 			return call.Err
@@ -241,7 +240,7 @@ func (c *DbusClientSerivce) GetPort(zone string) (list []*Port, err error) {
 		zone = c.GetDefaultZone()
 	}
 
-	obj := c.client.Object(object.INTERFACE, object.SERVICE)
+	obj := c.Conn.Object(object.INTERFACE, object.SERVICE)
 	call := obj.Call(object.ZONE_GETPORTS, dbus.FlagNoAutoStart, zone)
 
 	if call.Err != nil {
@@ -276,7 +275,7 @@ func (c *DbusClientSerivce) PermanentGetPort(zone string) (list []*Port, err err
 	if path, err = c.generatePath(zone, object.ZONE_PATH); err != nil {
 		return nil, err
 	}
-	obj := c.client.Object(object.INTERFACE, path)
+	obj := c.Conn.Object(object.INTERFACE, path)
 	call := obj.Call(object.CONFIG_ZONE_GETPORTS, dbus.FlagNoAutoStart)
 
 	if call.Err != nil {
@@ -319,7 +318,7 @@ func (c *DbusClientSerivce) RemovePort(port, zone string) (b bool, err error) {
 	}
 	port, protocol := splitPortProtocol(port)
 
-	obj := c.client.Object(object.INTERFACE, object.SERVICE)
+	obj := c.Conn.Object(object.INTERFACE, object.SERVICE)
 	call := obj.Call(object.ZONE_REMOVEPORT, dbus.FlagNoAutoStart, zone, port, protocol)
 
 	if call.Err != nil {
@@ -353,7 +352,7 @@ func (c *DbusClientSerivce) PermanentRemovePort(port, zone string) (b bool, err 
 	if path, err = c.generatePath(zone, object.ZONE_PATH); err != nil {
 		return false, err
 	}
-	obj := c.client.Object(object.INTERFACE, path)
+	obj := c.Conn.Object(object.INTERFACE, path)
 	call := obj.Call(object.CONFIG_ZONE_REMOVEPORT, dbus.FlagNoAutoStart, port, protocol)
 
 	if call.Err != nil {
@@ -377,7 +376,7 @@ func (c *DbusClientSerivce) AddProtocol(zone, protocol string, timeout int) (lis
 		zone = c.GetDefaultZone()
 	}
 
-	obj := c.client.Object(object.INTERFACE, object.SERVICE)
+	obj := c.Conn.Object(object.INTERFACE, object.SERVICE)
 	call := obj.Call(object.ZONE_ADDPROTOCOL, dbus.FlagNoAutoStart, zone, protocol, timeout)
 
 	if call.Err != nil {
@@ -401,7 +400,7 @@ func (c *DbusClientSerivce) AddService(zone, service string, timeout int) (list 
 		zone = c.GetDefaultZone()
 	}
 
-	obj := c.client.Object(object.INTERFACE, object.SERVICE)
+	obj := c.Conn.Object(object.INTERFACE, object.SERVICE)
 	call := obj.Call(object.ZONE_ADDSERVICE, dbus.FlagNoAutoStart, zone, service, timeout)
 
 	if call.Err != nil {
@@ -425,7 +424,7 @@ func (c *DbusClientSerivce) PermanentAddService(zone, service string) (err error
 	if path, err = c.generatePath(zone, object.ZONE_PATH); err != nil {
 		return err
 	}
-	obj := c.client.Object(object.INTERFACE, path)
+	obj := c.Conn.Object(object.INTERFACE, path)
 	call := obj.Call(object.CONFIG_ZONE_ADDSERVICE, dbus.FlagNoAutoStart, service)
 
 	if call.Err != nil {
@@ -445,7 +444,7 @@ func (c *DbusClientSerivce) QueryService(zone, service string) bool {
 		zone = c.GetDefaultZone()
 	}
 
-	obj := c.client.Object(object.INTERFACE, object.PATH)
+	obj := c.Conn.Object(object.INTERFACE, object.PATH)
 	call := obj.Call(object.ZONE_QUERYSERVICE, dbus.FlagNoAutoStart, zone, service)
 	if !call.Body[0].(bool) {
 		return false
@@ -470,7 +469,7 @@ func (c *DbusClientSerivce) PermanentQueryService(zone, service string) bool {
 		return false
 	}
 
-	obj := c.client.Object(object.INTERFACE, path)
+	obj := c.Conn.Object(object.INTERFACE, path)
 	call := obj.Call(object.CONFIG_ZONE_QUERYSERVICE, dbus.FlagNoAutoStart, service)
 	if !call.Body[0].(bool) {
 		return false
@@ -489,7 +488,7 @@ func (c *DbusClientSerivce) RemoveService(zone, service string) (err error) {
 		zone = c.GetDefaultZone()
 	}
 
-	obj := c.client.Object(object.INTERFACE, object.PATH)
+	obj := c.Conn.Object(object.INTERFACE, object.PATH)
 	call := obj.Call(object.ZONE_REMOVESERVICE, dbus.FlagNoAutoStart, zone, service)
 
 	if call.Err != nil {
@@ -513,7 +512,7 @@ func (c *DbusClientSerivce) PermanentRemoveService(zone, service string) (err er
 	if path, err = c.generatePath(zone, object.ZONE_PATH); err != nil {
 		return err
 	}
-	obj := c.client.Object(object.INTERFACE, path)
+	obj := c.Conn.Object(object.INTERFACE, path)
 	call := obj.Call(object.CONFIG_ZONE_REMOVESERVICE, dbus.FlagNoAutoStart, service)
 
 	if call.Err != nil {
@@ -539,7 +538,7 @@ func (c *DbusClientSerivce) EnableMasquerade(zone string, timeout int) (err erro
 	if zone == "" {
 		zone = c.GetDefaultZone()
 	}
-	obj := c.client.Object(object.INTERFACE, object.SERVICE)
+	obj := c.Conn.Object(object.INTERFACE, object.SERVICE)
 	call := obj.Call(object.ZONE_ADDMASQUERADE, dbus.FlagNoAutoStart, zone, timeout)
 
 	if call.Err != nil && len(call.Body) <= 0 {
@@ -567,7 +566,7 @@ func (c *DbusClientSerivce) PermanentEnableMasquerade(zone string) (err error) {
 	if path, err = c.generatePath(zone, object.ZONE_PATH); err != nil {
 		return err
 	}
-	obj := c.client.Object(object.INTERFACE, path)
+	obj := c.Conn.Object(object.INTERFACE, path)
 	call := obj.Call(object.CONFIG_ZONE_ADDMASQUERADE, dbus.FlagNoAutoStart)
 
 	if call.Err != nil {
@@ -592,7 +591,7 @@ func (c *DbusClientSerivce) DisableMasquerade(zone string) (err error) {
 	if zone == "" {
 		zone = c.GetDefaultZone()
 	}
-	obj := c.client.Object(object.INTERFACE, object.SERVICE)
+	obj := c.Conn.Object(object.INTERFACE, object.SERVICE)
 	call := obj.Call(object.ZONE_REMOVEMASQUERADE, dbus.FlagNoAutoStart, zone)
 
 	if call.Err != nil && len(call.Body) <= 0 {
@@ -619,7 +618,7 @@ func (c *DbusClientSerivce) PermanentDisableMasquerade(zone string) (err error) 
 	if path, err = c.generatePath(zone, object.ZONE_PATH); err != nil {
 		return err
 	}
-	obj := c.client.Object(object.INTERFACE, path)
+	obj := c.Conn.Object(object.INTERFACE, path)
 	call := obj.Call(object.CONFIG_ZONE_REMOVEMASQUERADE, dbus.FlagNoAutoStart)
 
 	if call.Err != nil && len(call.Body) <= 0 {
@@ -646,7 +645,7 @@ func (c *DbusClientSerivce) PermanentQueryMasquerade(zone string) (b bool, err e
 	if path, err = c.generatePath(zone, object.ZONE_PATH); err != nil {
 		return false, err
 	}
-	obj := c.client.Object(object.INTERFACE, path)
+	obj := c.Conn.Object(object.INTERFACE, path)
 	call := obj.Call(object.CONFIG_ZONE_QUERYMASQUERADE, dbus.FlagNoAutoStart)
 
 	if len(call.Body) <= 0 || !call.Body[0].(bool) {
@@ -669,7 +668,7 @@ func (c *DbusClientSerivce) QueryMasquerade(zone string) (b bool, err error) {
 	if zone == "" {
 		zone = c.GetDefaultZone()
 	}
-	obj := c.client.Object(object.INTERFACE, object.SERVICE)
+	obj := c.Conn.Object(object.INTERFACE, object.SERVICE)
 	call := obj.Call(object.ZONE_QUERYMASQUERADE, dbus.FlagNoAutoStart, zone)
 	if len(call.Body) <= 0 || !call.Body[0].(bool) {
 		return false, call.Err
@@ -697,7 +696,7 @@ func (c *DbusClientSerivce) BindInterface(zone, interface_name string) (list str
 		zone = c.GetDefaultZone()
 	}
 
-	obj := c.client.Object(object.INTERFACE, object.SERVICE)
+	obj := c.Conn.Object(object.INTERFACE, object.SERVICE)
 	call := obj.Call(object.ZONE_ADDINTERFACE, dbus.FlagNoAutoStart, zone, interface_name)
 
 	if call.Err != nil {
@@ -723,7 +722,7 @@ func (c *DbusClientSerivce) PermanentBindInterface(zone, interface_name string) 
 	if path, err = c.generatePath(zone, object.ZONE_PATH); err != nil {
 		return err
 	}
-	obj := c.client.Object(object.INTERFACE, path)
+	obj := c.Conn.Object(object.INTERFACE, path)
 	call := obj.Call(object.CONFIG_ZONE_ADDINTERFACE, dbus.FlagNoAutoStart, interface_name)
 
 	if call.Err != nil {
@@ -748,7 +747,7 @@ func (c *DbusClientSerivce) QueryInterface(zone, interface_name string) (b bool,
 		zone = c.GetDefaultZone()
 	}
 
-	obj := c.client.Object(object.INTERFACE, object.SERVICE)
+	obj := c.Conn.Object(object.INTERFACE, object.SERVICE)
 	call := obj.Call(object.ZONE_QUERYINTERFACE, dbus.FlagNoAutoStart, zone, interface_name)
 
 	if len(call.Body) <= 0 || !call.Body[0].(bool) {
@@ -773,7 +772,7 @@ func (c *DbusClientSerivce) PermanentQueryInterface(zone, interface_name string)
 	if path, err = c.generatePath(zone, object.ZONE_PATH); err != nil {
 		return err
 	}
-	obj := c.client.Object(object.INTERFACE, path)
+	obj := c.Conn.Object(object.INTERFACE, path)
 	call := obj.Call(object.CONFIG_ZONE_ADDINTERFACE, dbus.FlagNoAutoStart, interface_name)
 
 	if call.Err != nil {
@@ -795,7 +794,7 @@ func (c *DbusClientSerivce) RemoveInterface(zone, interface_name string) (err er
 		zone = c.GetDefaultZone()
 	}
 
-	obj := c.client.Object(object.INTERFACE, object.SERVICE)
+	obj := c.Conn.Object(object.INTERFACE, object.SERVICE)
 	call := obj.Call(object.ZONE_REMOVEINTERFACE, dbus.FlagNoAutoStart, zone, interface_name)
 	fmt.Println(call.Body)
 	if call.Err != nil && len(call.Body) <= 0 {
@@ -821,7 +820,7 @@ func (c *DbusClientSerivce) PermanentRemoveInterface(zone, interface_name string
 	if path, err = c.generatePath(zone, object.ZONE_PATH); err != nil {
 		return err
 	}
-	obj := c.client.Object(object.INTERFACE, path)
+	obj := c.Conn.Object(object.INTERFACE, path)
 	call := obj.Call(object.CONFIG_ZONE_REMOVEINTERFACE, dbus.FlagNoAutoStart, interface_name)
 	fmt.Println(call.Body)
 	if call.Err != nil {
@@ -860,7 +859,7 @@ func (c *DbusClientSerivce) AddForwardPort(zone string, portProtocol, toHostPort
 	if err != nil {
 		return err
 	}
-	obj := c.client.Object(object.INTERFACE, object.SERVICE)
+	obj := c.Conn.Object(object.INTERFACE, object.SERVICE)
 	call := obj.Call(object.ZONE_ADDFORWARDPORT, dbus.FlagNoAutoStart, zone, port, protocol, toPort, toAddr, timeout)
 	if call.Err != nil && len(call.Body) <= 0 {
 		return call.Err
@@ -892,7 +891,7 @@ func (c *DbusClientSerivce) PermanentAddForwardPort(zone string, portProtocol, t
 	if path, err = c.generatePath(zone, object.ZONE_PATH); err != nil {
 		return err
 	}
-	obj := c.client.Object(object.INTERFACE, path)
+	obj := c.Conn.Object(object.INTERFACE, path)
 	call := obj.Call(object.CONFIG_ZONE_ADDFORWARDPORT, dbus.FlagNoAutoStart, port, protocol, toPort, toAddr)
 	if call.Err != nil && len(call.Body) <= 0 {
 		return call.Err
@@ -927,7 +926,7 @@ func (c *DbusClientSerivce) RemoveForwardPort(zone string, portProtocol, toHostP
 	if err != nil {
 		return err
 	}
-	obj := c.client.Object(object.INTERFACE, object.SERVICE)
+	obj := c.Conn.Object(object.INTERFACE, object.SERVICE)
 	call := obj.Call(object.ZONE_REMOVEFORWARDPORT, dbus.FlagNoAutoStart, zone, port, protocol, toPort, toAddr)
 	if call.Err != nil && len(call.Body) <= 0 {
 		return call.Err
@@ -959,7 +958,7 @@ func (c *DbusClientSerivce) PermanentRemoveForwardPort(zone string, portProtocol
 	if path, err = c.generatePath(zone, object.ZONE_PATH); err != nil {
 		return err
 	}
-	obj := c.client.Object(object.INTERFACE, path)
+	obj := c.Conn.Object(object.INTERFACE, path)
 	call := obj.Call(object.CONFIG_ZONE_REMOVEFORWARDPORT, dbus.FlagNoAutoStart, port, protocol, toPort, toAddr)
 	if call.Err != nil && len(call.Body) <= 0 {
 		return call.Err
@@ -994,7 +993,7 @@ func (c *DbusClientSerivce) QueryForwardPort(zone string, portProtocol, toHostPo
 	if err != nil {
 		return false
 	}
-	obj := c.client.Object(object.INTERFACE, object.SERVICE)
+	obj := c.Conn.Object(object.INTERFACE, object.SERVICE)
 	call := obj.Call(object.ZONE_QUERYFORWARDPORT, dbus.FlagNoAutoStart, zone, port, protocol, toPort, toAddr)
 	fmt.Println(call.Body)
 	if call.Err != nil || !call.Body[0].(bool) {
@@ -1027,7 +1026,7 @@ func (c *DbusClientSerivce) PermanentQueryForwardPort(zone string, portProtocol,
 	if path, err = c.generatePath(zone, object.ZONE_PATH); err != nil {
 		return false, err
 	}
-	obj := c.client.Object(object.INTERFACE, path)
+	obj := c.Conn.Object(object.INTERFACE, path)
 	call := obj.Call(object.CONFIG_ZONE_QUERYFORWARDPORT, dbus.FlagNoAutoStart, port, protocol, toPort, toAddr)
 	if call.Err != nil || (len(call.Body) <= 0 || !call.Body[0].(bool)) {
 		return false, call.Err
@@ -1048,7 +1047,7 @@ func (c *DbusClientSerivce) GetRichRules(zone string) (ruleList []*Rule, err err
 		zone = c.GetDefaultZone()
 	}
 
-	obj := c.client.Object(object.INTERFACE, object.SERVICE)
+	obj := c.Conn.Object(object.INTERFACE, object.SERVICE)
 	call := obj.Call(object.ZONE_GETRICHRULES, dbus.FlagNoAutoStart, zone)
 
 	if call.Err != nil {
@@ -1073,7 +1072,7 @@ func (c *DbusClientSerivce) AddRichRule(zone string, rule *Rule, timeout int) (e
 		zone = c.GetDefaultZone()
 	}
 
-	obj := c.client.Object(object.INTERFACE, object.SERVICE)
+	obj := c.Conn.Object(object.INTERFACE, object.SERVICE)
 	call := obj.Call(object.ZONE_ADDRICHRULE, dbus.FlagNoAutoStart, zone, rule.ToString(), timeout)
 
 	if call.Err != nil {
@@ -1097,7 +1096,7 @@ func (c *DbusClientSerivce) PermanentAddRichRule(zone string, rule *Rule) (err e
 	if path, err = c.generatePath(zone, object.ZONE_PATH); err != nil {
 		return err
 	}
-	obj := c.client.Object(object.INTERFACE, path)
+	obj := c.Conn.Object(object.INTERFACE, path)
 	call := obj.Call(object.CONFIG_ZONE_ADDRICHRULE, dbus.FlagNoAutoStart, rule.ToString())
 
 	if call.Err != nil {
@@ -1116,7 +1115,7 @@ func (c *DbusClientSerivce) RemoveRichRule(zone string, rule *Rule) (err error) 
 	if zone == "" {
 		zone = c.GetDefaultZone()
 	}
-	obj := c.client.Object(object.INTERFACE, object.SERVICE)
+	obj := c.Conn.Object(object.INTERFACE, object.SERVICE)
 	call := obj.Call(object.ZONE_REOMVERICHRULE, dbus.FlagNoAutoStart, zone, rule.ToString())
 
 	if call.Err != nil {
@@ -1139,7 +1138,7 @@ func (c *DbusClientSerivce) PermanentRemoveRichRule(zone string, rule *Rule) (er
 	if path, err = c.generatePath(zone, object.ZONE_PATH); err != nil {
 		return err
 	}
-	obj := c.client.Object(object.INTERFACE, path)
+	obj := c.Conn.Object(object.INTERFACE, path)
 	call := obj.Call(object.CONFIG_ZONE_REOMVERICHRULE, dbus.FlagNoAutoStart, rule.ToString())
 
 	if call.Err != nil {
@@ -1164,7 +1163,7 @@ func (c *DbusClientSerivce) PermanentQueryRichRule(zone string, rule *Rule) bool
 	if path, err = c.generatePath(zone, object.ZONE_PATH); err != nil {
 		return false
 	}
-	obj := c.client.Object(object.INTERFACE, path)
+	obj := c.Conn.Object(object.INTERFACE, path)
 	call := obj.Call(object.CONFIG_ZONE_QUERYRICHRULE, dbus.FlagNoAutoStart, rule.ToString())
 
 	if len(call.Body) <= 0 || !call.Body[0].(bool) {
@@ -1183,7 +1182,7 @@ func (c *DbusClientSerivce) QueryRichRule(zone string, rule *Rule) bool {
 	if zone == "" {
 		zone = c.GetDefaultZone()
 	}
-	obj := c.client.Object(object.INTERFACE, object.SERVICE)
+	obj := c.Conn.Object(object.INTERFACE, object.SERVICE)
 	call := obj.Call(object.ZONE_QUERYRICHRULE, dbus.FlagNoAutoStart, zone, rule.ToString())
 
 	if len(call.Body) <= 0 || !call.Body[0].(bool) {
@@ -1202,7 +1201,7 @@ func (c *DbusClientSerivce) QueryRichRule(zone string, rule *Rule) bool {
  *                                                      ALREADY_ENABLED"
  */
 func (c *DbusClientSerivce) Reload() (err error) {
-	obj := c.client.Object(object.INTERFACE, object.SERVICE)
+	obj := c.Conn.Object(object.INTERFACE, object.SERVICE)
 	call := obj.Call(object.INTERFACE_RELOAD, dbus.FlagNoAutoStart)
 
 	if call.Err != nil {
@@ -1237,7 +1236,7 @@ func (c *DbusClientSerivce) RuntimeFlush(zone string) (err error) {
 	if path, err = c.generatePath(zone, object.ZONE_PATH); err != nil {
 		return err
 	}
-	obj := c.client.Object(object.INTERFACE, path)
+	obj := c.Conn.Object(object.INTERFACE, path)
 	call := obj.Call(object.CONFIG_UPDATE, dbus.FlagNoAutoStart, zoneSettings)
 
 	if call.Err != nil || len(call.Body) > 0 {
