@@ -1,8 +1,8 @@
-Go wapper for firewalld client.
+Wrapper for firewalld client in golang.
 
-firewalld does not have a good client API, it can only manage and operate a single node.
+firewalld does not have a good remote client API, it can only manage and operate a single node.
 
-go firewalld wapper, encapsulate the firewalld operation into a corresponding function, and support remote operation.
+gofirewallder, encapsulate the firewalld operation into a corresponding function, and supporting remote operation.
 
 一个使用go封装的firewalld客户端库
 
